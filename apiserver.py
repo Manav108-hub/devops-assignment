@@ -1,16 +1,14 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from sqlalchemy import Column, Integer, String, create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 from databases import Database
+from contextlib import asynccontextmanager
 
-DATABASE_URL = "sqlite:///./test.db"  # Change this for MySQL/PostgreSQL
+DATABASE_URL = "sqlite:///./test.db"
 database = Database(DATABASE_URL)
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
-
-app = FastAPI()
 
 class Calculation(Base):
     __tablename__ = "calculations"
@@ -22,13 +20,13 @@ class Calculation(Base):
 
 Base.metadata.create_all(bind=engine)
 
-@app.on_event("startup")
-async def startup():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     await database.connect()
-
-@app.on_event("shutdown")
-async def shutdown():
+    yield
     await database.disconnect()
+
+app = FastAPI(lifespan=lifespan)  # ✅ Updated to use Lifespan
 
 @app.get("/add/{num1}/{num2}")
 async def add(num1: int, num2: int):
