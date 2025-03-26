@@ -4,4 +4,3 @@ databases
 sqlalchemy
 pytest
 requests
-sqlite3
